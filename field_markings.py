@@ -122,4 +122,41 @@ def build_field_markings(coords, pitch_type, field_id, scale):
             f"penalty_arc_mask_{end_label}",
         )
 
+        # Corner arcs — full circle at each corner + 2 occlusion masks each
+        cr = specs["corner_radius"] * s
+        buf = cr + 2 * s  # padding beyond circle
+
+        for side, side_label in [(-1, "left"), (1, "right")]:
+            corner_x = end_x
+            corner_y = side * hw
+
+            add_circle_poly(
+                make_circle(corner_x, corner_y, cr),
+                f"corner_arc_{end_label}_{side_label}",
+            )
+
+            # Mask 1: outside the goal line (away from field in x direction)
+            goal_mask_x_outer = corner_x + sign * buf
+            add_mask(
+                make_closed_rect(
+                    min(goal_mask_x_outer, corner_x),
+                    max(goal_mask_x_outer, corner_x),
+                    corner_y - buf,
+                    corner_y + buf,
+                ),
+                f"corner_arc_mask_{end_label}_{side_label}_goal",
+            )
+
+            # Mask 2: outside the touchline (away from field in y direction)
+            touch_mask_y_outer = corner_y + side * buf
+            add_mask(
+                make_closed_rect(
+                    corner_x - buf,
+                    corner_x + buf,
+                    min(touch_mask_y_outer, corner_y),
+                    max(touch_mask_y_outer, corner_y),
+                ),
+                f"corner_arc_mask_{end_label}_{side_label}_touchline",
+            )
+
     return {"lines": lines, "circles": circles, "masks": masks, "points": points}

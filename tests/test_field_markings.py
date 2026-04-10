@@ -204,3 +204,52 @@ def test_penalty_arc_mask_covers_penalty_area_depth():
     # Should span from ≈-55 (goal line) to ≈-37 (penalty area back edge = -55+18)
     assert min(xs) <= -55.0 + 0.1
     assert max(xs) >= -37.0 - 0.1
+
+
+def test_corner_arc_circles_count():
+    """4 corner arcs total (near+far × left+right)."""
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=1.0)
+    corner_circles = [f for f in result["circles"]
+                      if "corner_arc" in f["attributes"]["component_type"]
+                      and "mask" not in f["attributes"]["component_type"]]
+    assert len(corner_circles) == 4
+
+
+def test_corner_arc_radius():
+    """Corner arc radius = 1 yd; circle centered at field corner."""
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=1.0)
+    arc = next(f for f in result["circles"]
+               if f["attributes"]["component_type"] == "corner_arc_near_left")
+    ring = arc["geometry"]["rings"][0]
+    # Corner at (-55, -35)
+    for x, y in ring[:-1]:
+        r = math.sqrt((x - (-55.0)) ** 2 + (y - (-35.0)) ** 2)
+        assert abs(r - 1.0) < 0.01
+
+
+def test_corner_arc_masks_count():
+    """8 masks total: 2 per corner × 4 corners."""
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=1.0)
+    corner_masks = [f for f in result["masks"]
+                    if "corner" in f["attributes"]["component_type"]]
+    assert len(corner_masks) == 8
+
+
+def test_corner_arc_mask_goal_side_covers_outside():
+    """Goal-side mask for near-left corner should cover x < -55."""
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=1.0)
+    mask = next(f for f in result["masks"]
+                if f["attributes"]["component_type"] == "corner_arc_mask_near_left_goal")
+    ring = mask["geometry"]["rings"][0]
+    xs = [p[0] for p in ring]
+    assert min(xs) < -55.0  # extends beyond goal line
+
+
+def test_corner_arc_mask_touchline_side_covers_outside():
+    """Touchline-side mask for near-left corner should cover y < -35."""
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=1.0)
+    mask = next(f for f in result["masks"]
+                if f["attributes"]["component_type"] == "corner_arc_mask_near_left_touchline")
+    ring = mask["geometry"]["rings"][0]
+    ys = [p[1] for p in ring]
+    assert min(ys) < -35.0  # extends beyond touchline
