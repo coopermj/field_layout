@@ -121,3 +121,48 @@ def test_scale_applied_to_areas():
     expected_half = 22 * 0.9144
     assert abs(min(ys) - (-expected_half)) < 0.01
     assert abs(max(ys) - expected_half) < 0.01
+
+
+def test_center_circle_in_circles_layer():
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=1.0)
+    circle_types = [f["attributes"]["component_type"] for f in result["circles"]]
+    assert "center_circle" in circle_types
+
+
+def test_11v11_center_circle_radius():
+    """11v11 center circle radius = 10 yds; verify a point on the ring."""
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=1.0)
+    cc = next(f for f in result["circles"]
+              if f["attributes"]["component_type"] == "center_circle")
+    ring = cc["geometry"]["rings"][0]
+    # Check radius of each vertex
+    for x, y in ring[:-1]:
+        r = math.sqrt(x ** 2 + y ** 2)
+        assert abs(r - 10.0) < 0.01
+
+
+def test_center_mark_at_origin():
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=1.0)
+    cm = next(f for f in result["points"]
+              if f["attributes"]["component_type"] == "center_mark")
+    assert abs(cm["geometry"]["x"]) < 0.01
+    assert abs(cm["geometry"]["y"]) < 0.01
+
+
+def test_11v11_penalty_marks_position():
+    """11v11 penalty marks: 12 yds from goal line. Near: x = -55+12 = -43."""
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=1.0)
+    by_type = _pts_by_type(result)
+    near = by_type["penalty_mark_near"][0]
+    far = by_type["penalty_mark_far"][0]
+    assert abs(near["geometry"]["x"] - (-43.0)) < 0.1
+    assert abs(near["geometry"]["y"]) < 0.1
+    assert abs(far["geometry"]["x"] - 43.0) < 0.1
+
+
+def test_9v9_penalty_marks_position():
+    """9v9 penalty marks: 10 yds from goal line. On 110×70 field: x = ±45."""
+    result = build_field_markings(FIELD_110x70, "9v9", field_id=1, scale=1.0)
+    by_type = _pts_by_type(result)
+    assert abs(by_type["penalty_mark_near"][0]["geometry"]["x"] - (-45.0)) < 0.1
+    assert abs(by_type["penalty_mark_far"][0]["geometry"]["x"] - 45.0) < 0.1

@@ -69,6 +69,13 @@ def build_field_markings(coords, pitch_type, field_id, scale):
     add_line([( hl, -hw), ( hl, hw)], "goal_line")
     add_line([(0,   -hw), (0,   hw)], "halfway_line")
 
+    # ── Center circle (polygon) ──────────────────────────────────────────────
+    circle_r = specs["circle_radius"] * s
+    add_circle_poly(make_circle(0.0, 0.0, circle_r), "center_circle")
+
+    # ── Center mark ─────────────────────────────────────────────────────────
+    add_point((0.0, 0.0), "center_mark")
+
     # ── Both ends (near = negative x, far = positive x) ─────────────────────
     for sign, end_label in [(-1, "near"), (1, "far")]:
         end_x = sign * hl
@@ -92,5 +99,9 @@ def build_field_markings(coords, pitch_type, field_id, scale):
             (end_x - sign * pa_d,  pa_hw),
             (end_x,               pa_hw),
         ], f"penalty_area_{end_label}")
+
+        # Penalty mark
+        pm_d = specs["penalty_mark_dist"] * s
+        add_point((end_x - sign * pm_d, 0.0), f"penalty_mark_{end_label}")
 
     return {"lines": lines, "circles": circles, "masks": masks, "points": points}
