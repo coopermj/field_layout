@@ -3,6 +3,7 @@ import pytest
 from geometry import rotate_translate
 from geometry import min_bounding_rect
 from geometry import make_circle, make_closed_rect
+from geometry import yards_to_native
 
 
 def test_rotate_translate_no_rotation():
@@ -139,3 +140,45 @@ def test_make_closed_rect_area():
     area = abs(sum(ring[i][0] * ring[(i+1) % n][1] - ring[(i+1) % n][0] * ring[i][1]
                    for i in range(n))) / 2
     assert abs(area - 200.0) < 1e-9
+
+
+def test_yards_to_native_meters_dict():
+    sr = {"linear_unit_name": "Meter"}
+    assert yards_to_native(sr) == pytest.approx(0.9144)
+
+
+def test_yards_to_native_meters_case_insensitive():
+    sr = {"linear_unit_name": "meter"}
+    assert yards_to_native(sr) == pytest.approx(0.9144)
+
+
+def test_yards_to_native_feet():
+    sr = {"linear_unit_name": "Foot_US"}
+    assert yards_to_native(sr) == pytest.approx(3.0)
+
+
+def test_yards_to_native_feet_variant():
+    sr = {"linear_unit_name": "Foot"}
+    assert yards_to_native(sr) == pytest.approx(3.0)
+
+
+def test_yards_to_native_degrees_raises():
+    sr = {"linear_unit_name": "Degree"}
+    with pytest.raises(ValueError, match="Unsupported"):
+        yards_to_native(sr)
+
+
+def test_yards_to_native_unknown_raises():
+    sr = {"linear_unit_name": "Fathom"}
+    with pytest.raises(ValueError):
+        yards_to_native(sr)
+
+
+class MockSR:
+    """Minimal mock of arcgis.geometry.SpatialReference."""
+    def __init__(self, unit_name):
+        self.linear_unit_name = unit_name
+
+def test_yards_to_native_arcgis_object():
+    sr = MockSR("Meter")
+    assert yards_to_native(sr) == pytest.approx(0.9144)

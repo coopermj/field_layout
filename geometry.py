@@ -105,3 +105,33 @@ def make_closed_rect(x0, x1, y0, y1):
         5-point closed ring: list of (x, y) tuples, first == last
     """
     return [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)]
+
+
+def yards_to_native(spatial_ref):
+    """
+    Return conversion factor: native coordinate units per yard.
+
+    Args:
+        spatial_ref: arcgis.geometry.SpatialReference object, or a dict with
+                     a 'linear_unit_name' key (e.g. {"linear_unit_name": "Meter"})
+
+    Returns:
+        float — multiply SAY yard-dimensions by this to get native units
+
+    Raises:
+        ValueError for unsupported or geographic coordinate systems
+    """
+    if hasattr(spatial_ref, "linear_unit_name"):
+        unit = spatial_ref.linear_unit_name.lower()
+    elif isinstance(spatial_ref, dict):
+        unit = str(spatial_ref.get("linear_unit_name", "")).lower()
+    else:
+        raise ValueError(f"Cannot determine units from spatial_ref: {spatial_ref!r}")
+
+    if "meter" in unit:
+        return 0.9144
+    if "foot" in unit or "feet" in unit:
+        return 3.0
+    raise ValueError(
+        f"Unsupported coordinate unit {unit!r}. Use a projected CRS in meters or feet."
+    )
