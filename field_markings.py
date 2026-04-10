@@ -104,4 +104,22 @@ def build_field_markings(coords, pitch_type, field_id, scale):
         pm_d = specs["penalty_mark_dist"] * s
         add_point((end_x - sign * pm_d, 0.0), f"penalty_mark_{end_label}")
 
+        # Penalty arc — full circle centered on penalty mark
+        arc_r = specs["arc_radius"] * s
+        pm_local_x = end_x - sign * pm_d
+        add_circle_poly(make_circle(pm_local_x, 0.0, arc_r), f"penalty_arc_{end_label}")
+
+        # Penalty arc mask — rectangle occluding the arc inside the penalty area
+        # Spans from goal line to penalty area back edge, tall enough to cover circle
+        mask_x0 = end_x
+        mask_x1 = end_x - sign * pa_d
+        buf = arc_r + 2 * s
+        add_mask(
+            make_closed_rect(
+                min(mask_x0, mask_x1), max(mask_x0, mask_x1),
+                -buf, buf,
+            ),
+            f"penalty_arc_mask_{end_label}",
+        )
+
     return {"lines": lines, "circles": circles, "masks": masks, "points": points}

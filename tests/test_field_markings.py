@@ -166,3 +166,41 @@ def test_9v9_penalty_marks_position():
     by_type = _pts_by_type(result)
     assert abs(by_type["penalty_mark_near"][0]["geometry"]["x"] - (-45.0)) < 0.1
     assert abs(by_type["penalty_mark_far"][0]["geometry"]["x"] - 45.0) < 0.1
+
+
+def test_penalty_arc_circles_present():
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=1.0)
+    circle_types = [f["attributes"]["component_type"] for f in result["circles"]]
+    assert "penalty_arc_near" in circle_types
+    assert "penalty_arc_far" in circle_types
+
+
+def test_11v11_penalty_arc_radius():
+    """11v11 arc radius = 10 yds, centered on penalty mark at (-43, 0)."""
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=1.0)
+    arc = next(f for f in result["circles"]
+               if f["attributes"]["component_type"] == "penalty_arc_near")
+    ring = arc["geometry"]["rings"][0]
+    pm_x = -55.0 + 12.0  # -43
+    for x, y in ring[:-1]:
+        r = math.sqrt((x - pm_x) ** 2 + y ** 2)
+        assert abs(r - 10.0) < 0.01
+
+
+def test_penalty_arc_masks_present():
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=1.0)
+    mask_types = [f["attributes"]["component_type"] for f in result["masks"]]
+    assert "penalty_arc_mask_near" in mask_types
+    assert "penalty_arc_mask_far" in mask_types
+
+
+def test_penalty_arc_mask_covers_penalty_area_depth():
+    """Near mask x range should span from goal line to penalty area back edge."""
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=1.0)
+    mask = next(f for f in result["masks"]
+                if f["attributes"]["component_type"] == "penalty_arc_mask_near")
+    ring = mask["geometry"]["rings"][0]
+    xs = [p[0] for p in ring]
+    # Should span from ≈-55 (goal line) to ≈-37 (penalty area back edge = -55+18)
+    assert min(xs) <= -55.0 + 0.1
+    assert max(xs) >= -37.0 - 0.1
