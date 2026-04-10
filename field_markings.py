@@ -159,4 +159,13 @@ def build_field_markings(coords, pitch_type, field_id, scale):
                 f"corner_arc_mask_{end_label}_{side_label}_touchline",
             )
 
+    # ── Build-out lines (7v7 only) ───────────────────────────────────────────
+    if specs["build_out_lines"]:
+        pa_d_bo = specs["penalty_area_depth"] * s
+        for sign, end_label in [(-1, "near"), (1, "far")]:
+            # pa_back_x: sign*(hl - pa_d) = for near: -(hl - pa_d) = -hl + pa_d
+            pa_back_x = sign * (hl - pa_d_bo)
+            bo_x = pa_back_x / 2  # midpoint between pa_back_x and 0 (halfway line)
+            add_line([(bo_x, -hw), (bo_x, hw)], f"build_out_line_{end_label}")
+
     return {"lines": lines, "circles": circles, "masks": masks, "points": points}

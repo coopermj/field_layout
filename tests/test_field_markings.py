@@ -253,3 +253,47 @@ def test_corner_arc_mask_touchline_side_covers_outside():
     ring = mask["geometry"]["rings"][0]
     ys = [p[1] for p in ring]
     assert min(ys) < -35.0  # extends beyond touchline
+
+
+# 65×45 yd field for 7v7 tests
+FIELD_65x45 = [(-32.5, -22.5), (32.5, -22.5), (32.5, 22.5), (-32.5, 22.5), (-32.5, -22.5)]
+
+
+def test_7v7_has_build_out_lines():
+    result = build_field_markings(FIELD_65x45, "7v7", field_id=1, scale=1.0)
+    by_type = _lines_by_type(result)
+    assert "build_out_line_near" in by_type
+    assert "build_out_line_far" in by_type
+
+
+def test_11v11_has_no_build_out_lines():
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=1.0)
+    by_type = _lines_by_type(result)
+    assert "build_out_line_near" not in by_type
+
+
+def test_7v7_build_out_line_position():
+    """
+    Build-out line: equidistant between halfway line (x=0) and penalty area back edge.
+    7v7: hl=32.5, pa_depth=12. Near pa back edge = -32.5 + 12 = -20.5.
+    Build-out line near = (-20.5 + 0) / 2 = -10.25.
+    """
+    result = build_field_markings(FIELD_65x45, "7v7", field_id=1, scale=1.0)
+    by_type = _lines_by_type(result)
+    path_near = by_type["build_out_line_near"][0]["geometry"]["paths"][0]
+    xs = [p[0] for p in path_near]
+    assert all(abs(x - (-10.25)) < 0.1 for x in xs)
+
+    path_far = by_type["build_out_line_far"][0]["geometry"]["paths"][0]
+    xs_far = [p[0] for p in path_far]
+    assert all(abs(x - 10.25) < 0.1 for x in xs_far)
+
+
+def test_7v7_build_out_line_full_width():
+    """Build-out lines span the full field width."""
+    result = build_field_markings(FIELD_65x45, "7v7", field_id=1, scale=1.0)
+    by_type = _lines_by_type(result)
+    path = by_type["build_out_line_near"][0]["geometry"]["paths"][0]
+    ys = [p[1] for p in path]
+    assert abs(min(ys) - (-22.5)) < 0.1
+    assert abs(max(ys) - 22.5) < 0.1
