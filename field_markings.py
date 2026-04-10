@@ -76,13 +76,19 @@ def build_field_markings(coords, pitch_type, field_id, scale):
     # ── Center mark ─────────────────────────────────────────────────────────
     add_point((0.0, 0.0), "center_mark")
 
+    ga_hw = specs["goal_area_width"] / 2 * s
+    ga_d = specs["goal_area_depth"] * s
+    pa_hw = specs["penalty_area_width"] / 2 * s
+    pa_d = specs["penalty_area_depth"] * s
+    pm_d = specs["penalty_mark_dist"] * s
+    arc_r = specs["arc_radius"] * s
+    cr = specs["corner_radius"] * s
+
     # ── Both ends (near = negative x, far = positive x) ─────────────────────
     for sign, end_label in [(-1, "near"), (1, "far")]:
         end_x = sign * hl
 
         # Goal area — 3-sided polyline (goal line closes the 4th side)
-        ga_hw = specs["goal_area_width"] / 2 * s
-        ga_d = specs["goal_area_depth"] * s
         add_line([
             (end_x,              -ga_hw),
             (end_x - sign * ga_d, -ga_hw),
@@ -91,8 +97,6 @@ def build_field_markings(coords, pitch_type, field_id, scale):
         ], f"goal_area_{end_label}")
 
         # Penalty area — 3-sided polyline
-        pa_hw = specs["penalty_area_width"] / 2 * s
-        pa_d = specs["penalty_area_depth"] * s
         add_line([
             (end_x,              -pa_hw),
             (end_x - sign * pa_d, -pa_hw),
@@ -101,11 +105,9 @@ def build_field_markings(coords, pitch_type, field_id, scale):
         ], f"penalty_area_{end_label}")
 
         # Penalty mark
-        pm_d = specs["penalty_mark_dist"] * s
         add_point((end_x - sign * pm_d, 0.0), f"penalty_mark_{end_label}")
 
         # Penalty arc — full circle centered on penalty mark
-        arc_r = specs["arc_radius"] * s
         pm_local_x = end_x - sign * pm_d
         add_circle_poly(make_circle(pm_local_x, 0.0, arc_r), f"penalty_arc_{end_label}")
 
@@ -113,18 +115,17 @@ def build_field_markings(coords, pitch_type, field_id, scale):
         # Spans from goal line to penalty area back edge, tall enough to cover circle
         mask_x0 = end_x
         mask_x1 = end_x - sign * pa_d
-        buf = arc_r + 2 * s
+        pa_mask_buf = arc_r + 2 * s
         add_mask(
             make_closed_rect(
                 min(mask_x0, mask_x1), max(mask_x0, mask_x1),
-                -buf, buf,
+                -pa_mask_buf, pa_mask_buf,
             ),
             f"penalty_arc_mask_{end_label}",
         )
 
         # Corner arcs — full circle at each corner + 2 occlusion masks each
-        cr = specs["corner_radius"] * s
-        buf = cr + 2 * s  # padding beyond circle
+        corner_buf = cr + 2 * s  # padding beyond circle
 
         for side, side_label in [(-1, "left"), (1, "right")]:
             corner_x = end_x
@@ -136,23 +137,23 @@ def build_field_markings(coords, pitch_type, field_id, scale):
             )
 
             # Mask 1: outside the goal line (away from field in x direction)
-            goal_mask_x_outer = corner_x + sign * buf
+            goal_mask_x_outer = corner_x + sign * corner_buf
             add_mask(
                 make_closed_rect(
                     min(goal_mask_x_outer, corner_x),
                     max(goal_mask_x_outer, corner_x),
-                    corner_y - buf,
-                    corner_y + buf,
+                    corner_y - corner_buf,
+                    corner_y + corner_buf,
                 ),
                 f"corner_arc_mask_{end_label}_{side_label}_goal",
             )
 
             # Mask 2: outside the touchline (away from field in y direction)
-            touch_mask_y_outer = corner_y + side * buf
+            touch_mask_y_outer = corner_y + side * corner_buf
             add_mask(
                 make_closed_rect(
-                    corner_x - buf,
-                    corner_x + buf,
+                    corner_x - corner_buf,
+                    corner_x + corner_buf,
                     min(touch_mask_y_outer, corner_y),
                     max(touch_mask_y_outer, corner_y),
                 ),
@@ -161,10 +162,9 @@ def build_field_markings(coords, pitch_type, field_id, scale):
 
     # ── Build-out lines (7v7 only) ───────────────────────────────────────────
     if specs["build_out_lines"]:
-        pa_d_bo = specs["penalty_area_depth"] * s
         for sign, end_label in [(-1, "near"), (1, "far")]:
             # pa_back_x: sign*(hl - pa_d) = for near: -(hl - pa_d) = -hl + pa_d
-            pa_back_x = sign * (hl - pa_d_bo)
+            pa_back_x = sign * (hl - pa_d)
             bo_x = pa_back_x / 2  # midpoint between pa_back_x and 0 (halfway line)
             add_line([(bo_x, -hw), (bo_x, hw)], f"build_out_line_{end_label}")
 
