@@ -2,6 +2,7 @@ import math
 import pytest
 from geometry import rotate_translate
 from geometry import min_bounding_rect
+from geometry import make_circle, make_closed_rect
 
 
 def test_rotate_translate_no_rotation():
@@ -91,3 +92,50 @@ def test_mbr_rotated_rectangle():
     # Rotated shape — length and width should reflect original dims
     assert length >= width
     assert length > 0 and width > 0
+
+
+def test_make_circle_closed():
+    """First and last point are equal (closed ring)."""
+    ring = make_circle(0.0, 0.0, 10.0)
+    assert ring[0] == ring[-1]
+
+
+def test_make_circle_radius():
+    """All points are at the correct radius from center."""
+    cx, cy, r = 5.0, 3.0, 8.0
+    ring = make_circle(cx, cy, r)
+    for x, y in ring[:-1]:  # skip closing point
+        dist = math.sqrt((x - cx) ** 2 + (y - cy) ** 2)
+        assert abs(dist - r) < 1e-9
+
+
+def test_make_circle_default_n_pts():
+    """Default 64 points → ring has 65 entries (64 + closing)."""
+    ring = make_circle(0.0, 0.0, 5.0)
+    assert len(ring) == 65
+
+
+def test_make_circle_custom_n_pts():
+    ring = make_circle(0.0, 0.0, 5.0, n_pts=32)
+    assert len(ring) == 33
+
+
+def test_make_closed_rect_corners():
+    """Corners are at expected positions; ring is closed."""
+    ring = make_closed_rect(-10.0, 10.0, -5.0, 5.0)
+    assert ring[0] == ring[-1]
+    xs = [p[0] for p in ring[:-1]]
+    ys = [p[1] for p in ring[:-1]]
+    assert set(xs) == {-10.0, 10.0}
+    assert set(ys) == {-5.0, 5.0}
+    assert len(ring) == 5  # 4 corners + close
+
+
+def test_make_closed_rect_area():
+    """Area of rect = width × height."""
+    ring = make_closed_rect(0.0, 20.0, 0.0, 10.0)
+    # Shoelace formula
+    n = len(ring) - 1
+    area = abs(sum(ring[i][0] * ring[(i+1) % n][1] - ring[(i+1) % n][0] * ring[i][1]
+                   for i in range(n))) / 2
+    assert abs(area - 200.0) < 1e-9

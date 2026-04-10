@@ -70,3 +70,38 @@ def min_bounding_rect(coords):
         angle += math.pi
 
     return float(center[0]), float(center[1]), length, width, angle
+
+
+def make_circle(cx, cy, radius, n_pts=64):
+    """
+    Approximate circle as a closed polygon ring.
+
+    Args:
+        cx, cy: center in local coordinates
+        radius: circle radius (same units as coordinate space)
+        n_pts: number of approximation vertices
+
+    Returns:
+        Closed ring: list of (x, y) tuples, len = n_pts + 1, first == last
+    """
+    pts = [
+        (cx + radius * math.cos(2 * math.pi * i / n_pts),
+         cy + radius * math.sin(2 * math.pi * i / n_pts))
+        for i in range(n_pts)
+    ]
+    pts.append(pts[0])
+    return pts
+
+
+def make_closed_rect(x0, x1, y0, y1):
+    """
+    Closed rectangular ring from corner coordinates.
+
+    Args:
+        x0, x1: x extents (x0 < x1 not required)
+        y0, y1: y extents
+
+    Returns:
+        5-point closed ring: list of (x, y) tuples, first == last
+    """
+    return [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)]
