@@ -69,4 +69,28 @@ def build_field_markings(coords, pitch_type, field_id, scale):
     add_line([( hl, -hw), ( hl, hw)], "goal_line")
     add_line([(0,   -hw), (0,   hw)], "halfway_line")
 
+    # ── Both ends (near = negative x, far = positive x) ─────────────────────
+    for sign, end_label in [(-1, "near"), (1, "far")]:
+        end_x = sign * hl
+
+        # Goal area — 3-sided polyline (goal line closes the 4th side)
+        ga_hw = specs["goal_area_width"] / 2 * s
+        ga_d = specs["goal_area_depth"] * s
+        add_line([
+            (end_x,              -ga_hw),
+            (end_x - sign * ga_d, -ga_hw),
+            (end_x - sign * ga_d,  ga_hw),
+            (end_x,               ga_hw),
+        ], f"goal_area_{end_label}")
+
+        # Penalty area — 3-sided polyline
+        pa_hw = specs["penalty_area_width"] / 2 * s
+        pa_d = specs["penalty_area_depth"] * s
+        add_line([
+            (end_x,              -pa_hw),
+            (end_x - sign * pa_d, -pa_hw),
+            (end_x - sign * pa_d,  pa_hw),
+            (end_x,               pa_hw),
+        ], f"penalty_area_{end_label}")
+
     return {"lines": lines, "circles": circles, "masks": masks, "points": points}

@@ -67,3 +67,57 @@ def test_pitch_type_on_all_features():
 def test_unknown_pitch_type_raises():
     with pytest.raises(KeyError):
         build_field_markings(FIELD_110x70, "6v6", field_id=1, scale=1.0)
+
+
+def test_penalty_area_count():
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=1.0)
+    by_type = _lines_by_type(result)
+    assert len(by_type["penalty_area_near"]) == 1
+    assert len(by_type["penalty_area_far"]) == 1
+
+
+def test_goal_area_count():
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=1.0)
+    by_type = _lines_by_type(result)
+    assert len(by_type["goal_area_near"]) == 1
+    assert len(by_type["goal_area_far"]) == 1
+
+
+def test_11v11_penalty_area_dimensions():
+    """11v11 penalty area: 44 yds wide (±22 from center), 18 yds deep."""
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=1.0)
+    by_type = _lines_by_type(result)
+    pa_near = by_type["penalty_area_near"][0]
+    path = pa_near["geometry"]["paths"][0]
+    ys = [p[1] for p in path]
+    xs = [p[0] for p in path]
+    assert abs(min(ys) - (-22.0)) < 0.1   # half of 44
+    assert abs(max(ys) - 22.0) < 0.1
+    # Back edge: -55 + 18 = -37
+    assert abs(max(xs) - (-37.0)) < 0.1
+
+
+def test_11v11_goal_area_dimensions():
+    """11v11 goal area: 20 yds wide (±10 from center), 6 yds deep."""
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=1.0)
+    by_type = _lines_by_type(result)
+    ga_near = by_type["goal_area_near"][0]
+    path = ga_near["geometry"]["paths"][0]
+    ys = [p[1] for p in path]
+    xs = [p[0] for p in path]
+    assert abs(min(ys) - (-10.0)) < 0.1
+    assert abs(max(ys) - 10.0) < 0.1
+    # Back edge: -55 + 6 = -49
+    assert abs(max(xs) - (-49.0)) < 0.1
+
+
+def test_scale_applied_to_areas():
+    """With scale=0.9144 (meters), penalty area width should be 44*0.9144 m wide."""
+    result = build_field_markings(FIELD_110x70, "11v11", field_id=1, scale=0.9144)
+    by_type = _lines_by_type(result)
+    pa_near = by_type["penalty_area_near"][0]
+    path = pa_near["geometry"]["paths"][0]
+    ys = [p[1] for p in path]
+    expected_half = 22 * 0.9144
+    assert abs(min(ys) - (-expected_half)) < 0.01
+    assert abs(max(ys) - expected_half) < 0.01
