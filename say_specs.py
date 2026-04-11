@@ -41,4 +41,4 @@ def get_pitch_specs(pitch_type):
         raise KeyError(
             f"Unknown pitch type: {pitch_type!r}. Must be one of {sorted(SAY_SPECS)}"
         )
-    return SAY_SPECS[pitch_type]
+    return dict(SAY_SPECS[pitch_type])
